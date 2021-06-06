@@ -251,13 +251,13 @@ class LTCCell(tf.keras.layers.AbstractRNNCell):
         sensory_w_activation = self._params["sensory_w"] * self._sigmoid(
             inputs, self._params["sensory_mu"], self._params["sensory_sigma"]
         )
-        sensory_w_activation *= self._params["sensory_sparsity_mask"]
+        sensory_w_activation *= self._params["sensory_sparsity_mask"]  # B,S,U
 
-        sensory_rev_activation = sensory_w_activation * self._params["sensory_erev"]
+        sensory_rev_activation = sensory_w_activation * self._params["sensory_erev"]  # B,S,U
 
         # Reduce over dimension 1 (=source sensory neurons)
-        w_numerator_sensory = tf.reduce_sum(sensory_rev_activation, axis=1)
-        w_denominator_sensory = tf.reduce_sum(sensory_w_activation, axis=1)
+        w_numerator_sensory = tf.reduce_sum(sensory_rev_activation, axis=1)  # B,U
+        w_denominator_sensory = tf.reduce_sum(sensory_w_activation, axis=1)  # B,U
 
         # cm/t is loop invariant
         cm_t = self._params["cm"] / tf.cast(
@@ -268,15 +268,15 @@ class LTCCell(tf.keras.layers.AbstractRNNCell):
         for t in range(self._ode_unfolds):
             w_activation = self._params["w"] * self._sigmoid(
                 v_pre, self._params["mu"], self._params["sigma"]
-            )
+            )  # B,U,U
 
             w_activation *= self._params["sparsity_mask"]
 
             rev_activation = w_activation * self._params["erev"]
 
             # Reduce over dimension 1 (=source neurons)
-            w_numerator = tf.reduce_sum(rev_activation, axis=1) + w_numerator_sensory
-            w_denominator = tf.reduce_sum(w_activation, axis=1) + w_denominator_sensory
+            w_numerator = tf.reduce_sum(rev_activation, axis=1) + w_numerator_sensory  # B,U
+            w_denominator = tf.reduce_sum(w_activation, axis=1) + w_denominator_sensory  # B,U
 
             numerator = (
                 cm_t * v_pre
